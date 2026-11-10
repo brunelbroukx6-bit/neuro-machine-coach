@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 
 export default function MemoryApp() {
   const [mode, setMode] = useState("menu");
-  
+  const speakNumbers = (textToSpeak: string, langCode: string = "fr-FR") => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = langCode;
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  };
   // États Langue internationale (avec recherche par initiales)
   const [langSearch, setLangSearch] = useState("");
   const [currentLang, setCurrentLang] = useState("FR");
@@ -12,6 +19,7 @@ export default function MemoryApp() {
   const [isManualNext, setIsManualNext] = useState(false);
   const [waitingForNext, setWaitingForNext] = useState(false);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
   const [sessionNumCount, setSessionNumCount] = useState(0);
 
   // Fonction Reconnaissance Vocale pour les chiffres
@@ -610,6 +618,10 @@ historyWeeklyTrend: "📈 Wekelijkse evolutie : +12%",
     setLevel(lvl); setNumSpeed(speed); setIsManualMode(manual); setDisplaying(true);
     let seq = ""; for (let i = 0; i < lvl; i++) seq += Math.floor(Math.random() * 10);
     setSequence(seq);
+    if (autoSpeak) {
+  const langCode = currentLang === 'NL' ? 'nl-NL' : currentLang === 'EN' ? 'en-US' : 'fr-FR';
+  speakNumbers(seq.split('').join(' '), langCode);
+}
     
     const displayTime = manual && customDurationMs ? customDurationMs : Math.max(3000, lvl * (speed * 0.75));
     setTimeout(() => { setDisplaying(false); }, displayTime);
@@ -769,7 +781,7 @@ historyWeeklyTrend: "📈 Wekelijkse evolutie : +12%",
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-3 overflow-hidden">
       <div className="max-w-md w-full h-[620px] bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl relative flex flex-col justify-between overflow-y-auto">
-        
+
         <div>
           {/* BOUTON AIDE / INFO */}
           <button 
@@ -929,24 +941,25 @@ historyWeeklyTrend: "📈 Wekelijkse evolutie : +12%",
             </div>
           )}
 {/* Bouton de reconnaissance vocale */}
-<div className="flex flex-col gap-2 mt-4">
+{/* Commandes Vocales (Reconnaissance & Synthèse) */}
+<div className="flex gap-2 mt-4 items-center">
   <button
-    onClick={isListeningVoice ? () => {} : startSpeechRecognition}
-    className={`px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
-      isListeningVoice 
-        ? 'bg-red-500 text-white animate-pulse' 
-        : 'bg-blue-600 hover:bg-blue-500 text-white'
-    }`}
+    type="button"
+    onClick={isListeningVoice ? undefined : startSpeechRecognition}
+    className={`flex-1 py-2 px-3 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition text-white ${isListeningVoice ? 'bg-red-500 animate-pulse' : 'bg-blue-600 hover:bg-blue-500'}`}
   >
-    {isListeningVoice ? '🎤 Écoute en cours (Parlez...)' : '🎤 Activer la reconnaissance vocale'}
+    <span className={`w-2 h-2 rounded-full ${isListeningVoice ? 'bg-white' : 'bg-blue-300'}`}></span>
+    {isListeningVoice ? "Écoute en cours..." : "Activer la reco vocale"}
   </button>
-
-  {/* Affichage du résultat vocal ou du statut */}
-  {waitingForNext && (
-    <div className="text-sm text-yellow-400 text-center">
-      En attente du chiffre vocal...
-    </div>
-  )}
+  
+  <button
+    type="button"
+    onClick={() => setAutoSpeak(!autoSpeak)}
+    className={`py-2 px-3 rounded-lg font-bold text-xs transition border ${autoSpeak ? 'bg-cyan-600 border-cyan-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}
+    title="Voix automatique des chiffres"
+  >
+    🔊 {autoSpeak ? "ON" : "OFF"}
+  </button>
 </div>
           {/* CONFIG CHIFFRES AVEC SELECTEUR DE TEMPS MANUEL */}
           {mode === "config-numbers" && (
